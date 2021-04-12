@@ -16,6 +16,7 @@ namespace MIDI
 
    // Channel messages are 0b1xxxyyyy, where xxx is the opcode, and yyyy is the
    // channel they come from. The values here do not include the channels.
+
    enum Message
    {
       NONE        = 0x00,  // The NULL message, included for completeness
@@ -51,13 +52,14 @@ namespace MIDI
       RT_RESET    = 0xFF,  // Reset any parameters to their power up values
 
       // "Break points" in the message message space
-      SYS_MESSAGES= SYSEX,
-      RT_MESSAGES = RT_CLOCK,
+      SYS_MSGS    = SYSEX,
+      RT_MSGS     = RT_CLOCK,
    };
 
    // --------------------------------------------------------------------------
    // Some CC values have predetermined meanings, and represent changes to
    // the actual synthesizer's state, rather than performance values.
+
    enum CC
    {
       CC_MODWHEEL       = 1,
@@ -80,11 +82,12 @@ namespace MIDI
 
    // --------------------------------------------------------------------------
    // Categorize the MIDI message
-   constexpr bool is_cmd( uint8_t cmd )         { return (cmd & 0x80) == 0x80; }
-   constexpr bool is_syscmd( uint8_t cmd )      { return (cmd & 0xf8) == 0xf0; }
-   constexpr bool is_rtcmd( uint8_t cmd )       { return (cmd & 0xf8) == 0xf8; }
-   constexpr uint8_t msg_value( uint8_t cmd )   { return cmd & 0xf0; }
-   constexpr uint8_t msg_channel( uint8_t cmd ) { return cmd & 0x0f; }
+
+   constexpr bool is_msg( uint8_t msg )         { return (msg & 0x80) == 0x80; }
+   constexpr bool is_sysmsg( uint8_t msg )      { return (msg & 0xf8) == 0xf0; }
+   constexpr bool is_rtmsg( uint8_t msg )       { return (msg & 0xf8) == 0xf8; }
+   constexpr uint8_t msg_value( uint8_t msg )   { return msg & 0xf0; }
+   constexpr uint8_t msg_channel( uint8_t msg ) { return msg & 0x0f; }
 
    // --------------------------------------------------------------------------
 
@@ -99,7 +102,7 @@ namespace MIDI
    class Parser
    {
       public:
-         Parser() { reset(); }
+         explicit Parser() { reset(); }
 
          // Clear out the parser's data
          void reset();

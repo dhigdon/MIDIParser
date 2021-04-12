@@ -31,19 +31,20 @@ namespace
    };
 
    // Returns the number of bytes expected by the given 
-   // CHANNEL MESSAGE or SYSTEM COMMON message
-   int8_t expected_bytes(uint8_t message)
+   // CHANNEL MESSAGE or SYSTEM COMMON MESSAGE
+   int8_t expected_bytes(uint8_t msg)
    {
-      // Note that message MUST be an actual message.
+      // Note that msg MUST be an actual message.
+      // assert(msg >= 0x80);
 
       // CHANNEL MESSAGES are all messsage before SYSTEM COMMON messages,
       // and are distinguished by the low 3 bits of their high nibble.
-      if (message < MIDI::SYS_MESSAGES)
-         return midi_msg_bytes[(message >> 4) & 7];
+      if (msg < MIDI::SYS_MSGS)
+         return midi_msg_bytes[(msg >> 4) & 7];
 
       // SYSTEM COMMON messages are distinguished by their low 3 bits.
-      if (message < MIDI::RT_MESSAGES)
-         return midi_sysmsg_bytes[message & 0x7];
+      if (msg < MIDI::RT_MSGS)
+         return midi_sysmsg_bytes[msg & 0x7];
 
       // REALTIME messages never have any parameter bytes
       return 0;
@@ -61,19 +62,19 @@ void MIDI::Parser::reset()
 
 // ----------------------------------------------------------------------------
 
-uint8_t MIDI::Parser::accept( char midiByte )
+uint8_t MIDI::Parser::accept(char midiByte)
 {
    // RT messages interrupt other messages, and do not "trash" their reception.
-   if ( is_rtcmd( midiByte ) )
+   if (is_rtmsg(midiByte))
    {
       return midiByte;
    }
 
-   if ( is_cmd( midiByte ) )
+   if (is_msg(midiByte))
    {
       // Remember the message and see how many more bytes to expect
       mMessage = midiByte;
-      mExpected = expected_bytes( mMessage );
+      mExpected = expected_bytes(mMessage);
 
       // SYSEX is a special case - if mExpected is negative, then
       // return the SYSEX message
@@ -94,7 +95,7 @@ uint8_t MIDI::Parser::accept( char midiByte )
    // But reset mExpected to support Running Status
    if (mExpected == 0)
    {
-      mExpected = expected_bytes( mMessage );
+      mExpected = expected_bytes(mMessage);
       return mMessage;
    }
 
