@@ -1,15 +1,14 @@
-// MIDI Tracer - Show 
+// MIDI Tracer
+// Connect MIDI RX=PIN 2, TX=PIN 3
 
 #include <SoftwareSerial.h>
 #include <MIDIparser.h>
 
-// NOTE: we use software serial so we can still use TX/RX for communications
-// with the PC
-int const PIN_RX = 8;
-int const PIN_TX = 9;
+// NOTE: use software serial so we can still use TX/RX for communications with the PC
+// Arduino UNO only has interrupts on pins 2&3, so use those for our input.
+SoftwareSerial midi_port( 2, 3 );
 
-// Pin managing objects
-SoftwareSerial midi_port( PIN_RX, PIN_TX );
+// Our parser
 MIDI::Parser parser;
 
 // For commands of 0xf0 and greater (Both SYS and RS names)

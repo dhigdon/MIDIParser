@@ -1,6 +1,7 @@
 // MIDI Parser - a library for parsing MIDI data message
 // (C)2021 Dan Higdon
 
+#pragma once
 #ifndef MIDI_PARSER
 #define MIDI_PARSER
 
@@ -21,32 +22,32 @@ namespace MIDI
    {
       NONE        = 0x00,  // The NULL message, included for completeness
 
-      // 0x80 - 0xE0 are channel messages, and the low nibble is the channel number.
-      NOTE_OFF    = 0x80,  // Note, Velocity
-      NOTE_ON     = 0x90,  // Note, Velocity
-      AFTERTOUCH  = 0xA0,  // Note, Pressure
-      CC_CHANGE   = 0xB0,  // CC, Value
-      PROG_CHANGE = 0xC0,  // Patch#, None
-      CH_TOUCH    = 0xD0,  // Pressure, None
-      PITCH_BEND  = 0xE0,  // 14 bits
+      // 0x80 - 0xE0 are channel messages
+      NOTE_OFF    = 0x80,  // dataA = Note   dataB = Velocity
+      NOTE_ON     = 0x90,  // dataA = Note   dataB = Velocity
+      AFTERTOUCH  = 0xA0,  // dataA = Note   dataB = Pressure
+      CC_CHANGE   = 0xB0,  // dataA = CC     dataB = Value
+      PROG_CHANGE = 0xC0,  //                dataB = Patch#
+      CH_TOUCH    = 0xD0,  //                dataB = Pressure
+      PITCH_BEND  = 0xE0,  // Bend (14 bits, center on 0x2000)
 
       // 0xF0 and above are SYSTEM COMMON messages.
-      // Their "channel" field determines the message.
-      SYSEX       = 0xF0,  // bulk dump data, ends with MIDI_ENDEX
-      MTCQFRAME   = 0xF1,  // expects 1 byte, a "quarter frame"
+      // Their "channel" field determines the specific message.
+      SYSEX       = 0xF0,  // bulk dump data, ends with ENDEX
+      MTCQFRAME   = 0xF1,  // dataB = quarter frame number
       SPP         = 0xF2,  // 14 bits of beats (1 beat == 6 Clocks)
-      SONG_SELECT = 0xF3,  // expects 1 byte for song#
+      SONG_SELECT = 0xF3,  // dataB = song#
       UNDEF_1     = 0xF4,
       UNDEF_2     = 0xF5, 
       TUNE_REQ    = 0xF6,  // no data, return oscillators
       ENDEX       = 0xF7,  // ends a SYSEX dump
 
-      // MIDI Realtime messages can interrupt other messages
+      // MIDI Realtime messages can interrupt other messages, and have no data
       RT_CLOCK    = 0xF8,  // 24 PPQ
       RT_UNDEF_1  = 0xF9,
-      RT_START    = 0xFA,  // Begin playing the sequence, "From the top!"
+      RT_START    = 0xFA,  // Begin playing, reset current position
       RT_CONTINUE = 0xFB,  // Resume playing from the current position
-      RT_STOP     = 0xFC,  // Stop playing, remembering the position for a later RESUME
+      RT_STOP     = 0xFC,  // Stop playing, recording current position
       RT_UNDEF_2  = 0xFD,
       RT_SENSE    = 0xFE,  // Sent every 300ms on a live connection. Can ignore.
       RT_RESET    = 0xFF,  // Reset any parameters to their power up values
@@ -62,14 +63,15 @@ namespace MIDI
 
    enum CC
    {
-      CC_MODWHEEL       = 1,
-      CC_BREATH         = 2,
-      CC_VOLUME         = 7,     // overall channel volume
-      CC_PAN            = 10,    // 64=centered
-      CC_EXPRESSION     = 11,    // volume use expressively
+      CC_MODWHEEL       = 1,     // 0-127
+      CC_BREATH         = 2,     // 0-127
+      CC_VOLUME         = 7,     // Channel mix volume
+      CC_PAN            = 10,    // 0-127, 64=centered
+      CC_EXPRESSION     = 11,    // playback dynamics
       CC_SUSTAIN        = 64,    // 0=off, 127=on
       CC_PORTAMENTO     = 65,    // 0=off, 127=on
 
+      // CHANNEL MODE MESSAGES
       // These CC's are for the SYNTH, not the note
       CC_RESET          = 121,   // None. Also called "All Sound Off"
       CC_MODE_LOCAL     = 122,   // 0=off, 127=on. Keyboard on/off
@@ -109,17 +111,24 @@ namespace MIDI
 
          // Accept the next character of data.
          // Returns 0 if no message, or an integer equal to the enum Message
-         // value of a message which has been parsed.
+         // value of a message which has been parsed. Used the get_data
+         // functions to retrieve parameters appropriate to each message type.
          uint8_t accept( char data );
 
          // Messages and access to their parameters.
-         // Note that these are only meaningful if accept() returns a nonzero
-         // value, but the bytes are always available.
+
+         // Note that these functions are only meaningful if accept() returns a nonzero
+         // value, but the bytes are always available for inspection.
          uint8_t get_message() const  { return mMessage; }
+
+         // Use get_data[A|B] to retrieve message data bytes.
+         // 1 byte  - dataB
+         // 2 bytes - dataA, dataB
+         // There are no 3 byte messages
          uint8_t get_dataA() const    { return mData[0]; }
          uint8_t get_dataB() const    { return mData[1]; }
 
-         // Some messages use a 14bit parameter, sent LSB, MSB
+         // Some messages use a 14bit parameter
          uint16_t get_int14() const;
 
          // NOTE about SYSEX data
@@ -133,8 +142,8 @@ namespace MIDI
       private:
 
          uint8_t  mMessage;   // The message being worked on
-         int8_t   mExpected;  // The remaining parameter bytes for this message
-         uint8_t  mData[2];   // Message data (up to 2 bytes whose meanings vary)
+         int8_t   mExpected;  // The remaining parameter byte count for this message
+         uint8_t  mData[2];   // Message data
    };
 
    // --------------------------------------------------------------------------
@@ -146,3 +155,4 @@ namespace MIDI
 }
 
 #endif
+
